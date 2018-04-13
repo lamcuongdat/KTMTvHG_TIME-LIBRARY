@@ -21,6 +21,20 @@
 	promptMonth: .asciiz "Nhap thang MONTH: "
 	promptYear: .asciiz "Nhap nam YEAR: "
 	slash: .asciiz "/"
+	#Dat's data
+	error: .asciiz"Error!"
+	january: .asciiz"January"
+	ferbuary: .asciiz"Ferbuary"
+	march: .asciiz"March"
+	april: .asciiz"April"
+	may: .asciiz"May"
+	june: .asciiz"June"
+	july: .asciiz"July"
+	august: .asciiz "August"
+	september: .asciiz"September"
+	october: .asciiz"October"
+	november: .asciiz"November"
+	december: .asciiz"December"
 .text
 .globl main
 #-----------------------------------------------------------
