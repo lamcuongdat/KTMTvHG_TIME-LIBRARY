@@ -2,20 +2,20 @@
 	time: .asciiz"04/04/2018"
 	time1: .asciiz"28/02/2018"
 	time2: .asciiz"29/02/2016"
-	Monday: .asciiz"Mon"
-	Tuesday: .asciiz"Tue"
-	Wednesday: .asciiz"Wed"
-	Thursday: .asciiz"Thurs"
-	Friday: .asciiz"Fri"
-	Saturday: .asciiz"Sat"
-	Sunday: .asciiz"Sun"
+	Monday: .asciiz"Monday"
+	Tuesday: .asciiz"Tuesday"
+	Wednesday: .asciiz"Wendesday"
+	Thursday: .asciiz"Thursday"
+	Friday: .asciiz"Friday"
+	Saturday: .asciiz"Saturday"
+	Sunday: .asciiz"Sunday"
 	newline: .asciiz"\n"
 	startAnnounce: .asciiz" ------------Ban hay chon 1 trong cac thao tac duoi day------------ \n 1. Xuat chuoi TIME theo dinh dang DD/MM/YYYY \n 2. Chuyen doi chuoi TIME thanh mot trong cac dinh dang sau: \n     A. MM/DD/YYYY \n     B. Month DD, YYYY \n     C. DD Month, YYYY \n 3. Cho biet ngay vua nhap la ngay thu may trong tuan: \n 4. Kiem tra nam trong chuoi TIME co phai la nam nhuan khong \n 5. Cho biet khoang thoi gian giua chuoi TIME_1 va TIME_2 \n 6. Cho biet 2 nam nhuan gan nhat voi nam trong chuoi time \n"
 	charRequestNumber: .space 2
 	charRequestAlphabet: .space 2
 	stringLuaChon: .asciiz"Lua chon: "
 	stringKetQua: .asciiz"Ket qua: "
-	
+	RequestNumber: .word
 	# Huan's data section . [newline] duplicated
 	promptDay: .asciiz "Nhap ngay DAY: "
 	promptMonth: .asciiz "Nhap thang MONTH: "
@@ -36,36 +36,58 @@
 	october: .asciiz"October"
 	november: .asciiz"November"
 	december: .asciiz"December"
+	laNamNhuan: .asciiz"La nam nhuan"
+	khongLaNamNhuan: .asciiz"KHONG La nam nhuan"
+	commaSpace: .asciiz", "
 .text
 .globl main
 #-----------------------------------------------------------
 
 main: 
-	
-	#jal GetTime
-	#add $a0,$v0,$0
-	#li $v0,1 #In kieu int
+	addi $sp, $sp, -12
+	add $a0, $sp,$0
+	jal nhap
+	lw $a0, 8($sp)
+	lw $a1, 4($sp)
+	lw $a2, 0($sp)
+	addi $sp, $sp, 12
+	la $a3, time1
+	jal Date
 ChooseRequestNumber:
-	#In thong bao va doc ki tu
-	la $a0,startAnnounce
-	li $v0,4 #In xau ra man hinh
-	syscall
-	li $v0, 8       #Goi ham nhap 1 ki tu
-	la $a0, charRequestNumber        #Tai dia chi de doc
-	li $a1, 2       #Chieu dai cua chuoi la 1 byte va 1 null
-	syscall         #Luu char tu buffer vao charRequest
-	lb $t0,charRequestNumber
 
-	#Kiem tra ki tu nhap vao
-	addi $t1,$0,49
-	slt $t2,$t0,$t1
-	bne $t2,$0,ChooseRequestNumber #Ki tu doc vao <49 (nho hon 1)
-	addi $t1,$t1,5 #$t1 la ki tu 54 (so 6)
-	slt $t2,$t1,$t0
-	bne $t2,$0,ChooseRequestNumber #Ki tu doc vao >54 (lon hon 6)
+	la $a0,startAnnounce
+	addi $v0,$0,4 #In xau ra man hinh
+	syscall
+	la $a0, RequestNumber        #Tai dia chi de doc
+	addi $v0, $0, 5
+	syscall
+	add $t1, $v0, $0
+	slti $t0, $t1, 1
+	bne $t0,$0, ChooseRequestNumber
+	slti $t0, $t1, 7
+	beq $t0,$0, ChooseRequestNumber
+	
+	addi $t0, $v0, 48
+	la $t7, charRequestNumber
+	sb $t0, ($t7)
+	addi $t0, $0, 0
+	sb $t0, 1($t7)
+
+	addi $t0, $0, 1
+	beq $t1,$t0, Choose1
+	addi $t0, $0, 2
+	beq $t1,$t0, Choose2
+	addi $t0, $0, 3
+	beq $t1,$t0, Choose3
+	addi $t0, $0, 4
+	beq $t1,$t0, Choose4
+	addi $t0, $0, 5
+	beq $t1,$t0, Choose5
+	addi $t0, $0, 6
+	beq $t1,$t0, Choose6
+	j EndOfFile
+	
 Choose6:
-	bne $t1,$t0,Choose5
-	#jal NextLeapYear
 	#Luu tru $a0, $v0
 	addi $sp,$sp,-8
 	sw $a0,0($sp)
@@ -85,39 +107,35 @@ Choose6:
 	la $a0,stringKetQua
 	li $v0,4 #In xau ra man hinh
 	syscall
+	la $a0, time1
+	jal LeapYearNext
+	add $a0, $v0, $0
+	addi $v0, $0, 1
+	syscall
+	la $a0, commaSpace
+	addi $v0, $0, 4
+	syscall
+	add $a0, $v1, $0
+	addi $v0, $0, 1
+	syscall
 	#Tra lai $v0, $a0
 	lw $v0,4($sp)
 	lw $a0,0($sp)
 	addi $sp,$sp,8
 	j EndChooseRequestNumber
 Choose5:
-	addi $t1,$t1,-1
-	bne $t1,$t0,Choose4
-	#jal Nhap time1
-	  addi $sp, $sp, -12 # Allocate space for [Y, M, D] array on stack
-	  add $a0, $zero, $sp
-	  jal nhap
-	  lw $a2, 0($a0) # Save YEAR to $a2
-	  lw $a1, 4($a0) # Save MONTH to $a1
-	  lw $a0, 8($a0) # Save DAY to $a0
-	  addi $sp, $sp, 12 # Deallocate space for [Y, M, D] array
-	  addi $sp, $sp, -12 # Allocate space for DD/MM/YYYY string
-	  add $a3, $sp, $zero # $a3 = Address of DD/MM/YYYY string
-	  jal Date
-	#jal Nhap time2
-	  addi $sp, $sp, -12 # Allocate space for [Y, M, D] array on stack
-	  add $a0, $zero, $sp
-	  jal nhap
-	  lw $a2, 0($a0) # Save YEAR to $a2
-	  lw $a1, 4($a0) # Save MONTH to $a1
-	  lw $a0, 8($a0) # Save DAY to $a0
-	  addi $sp, $sp, 12 # Deallocate space for [Y, M, D] array
-	  addi $sp, $sp, -12 # Allocate space for DD/MM/YYYY string
-	  add $a3, $sp, $zero # $a3 = Address of DD/MM/YYYY string
-	  jal Date
-	  add $v1, $v0, $zero
-	add $a0, $v0, $zero
-	add $a1, $v1, $zero
+
+	addi $sp, $sp, -12
+	add $a0, $sp,$0
+	jal nhap
+	lw $a0, 8($sp)
+	lw $a1, 4($sp)
+	lw $a2, 0($sp)
+	addi $sp, $sp, 12
+	la $a3, time2
+	jal Date
+	la $a0, time1
+	la $a1, time2
 	jal GetTime
 	#Luu tru $a0, $v0
 	addi $sp,$sp,-8
@@ -135,7 +153,7 @@ Choose5:
 	la $a0,newline
 	li $v0,4 #In xau ra man hinh
 	syscall
-	la $a0,stringKetQua
+	la $a0, stringKetQua
 	li $v0,4 #In xau ra man hinh
 	syscall
 	#Tra lai $v0, $a0
@@ -148,9 +166,8 @@ Choose5:
 	syscall
 	j EndChooseRequestNumber
 Choose4:
-	addi $t1,$t1,-1
-	bne $t1,$t0,Choose3
-	#jal LeapYear
+	la $a0, time1
+	jal LeapYear
 	#Luu tru $a0, $v0
 	addi $sp,$sp,-8
 	sw $a0,0($sp)
@@ -167,7 +184,13 @@ Choose4:
 	la $a0,newline
 	li $v0,4 #In xau ra man hinh
 	syscall
-	la $a0,stringKetQua
+	lw $v0, 4($sp)
+	beq $v0, $0, KhongLaNamNhuan
+	la $a0, laNamNhuan
+	j PrintLeapYearResult
+KhongLaNamNhuan:
+	la $a0, khongLaNamNhuan
+PrintLeapYearResult:
 	li $v0,4 #In xau ra man hinh
 	syscall
 	#Tra lai $v0, $a0
@@ -176,9 +199,7 @@ Choose4:
 	addi $sp,$sp,8
 	j EndChooseRequestNumber
 Choose3:
-	addi $t1,$t1,-1
-	bne $t1,$t0,Choose2
-	la $a0,time
+	la $a0,time1
 	jal Weekday
 	#Luu tru $a0, $v0
 	addi $sp,$sp,-8
@@ -209,8 +230,6 @@ Choose3:
 	syscall
 	j EndChooseRequestNumber
 Choose2:
-	addi $t1,$t1,-1
-	bne $t1,$t0,Choose1
 	ChooseRequestAlphabet:
 		li $v0, 8       #Goi ham nhap 1 ki tu
 		la $a0, charRequestAlphabet        #Tai dia chi de doc
@@ -227,8 +246,9 @@ Choose2:
 		bne $t2,$0,ChooseRequestAlphabet #Ki tu doc vao >67 (lon hon "C")
 	EndChooseRequestAlphabet:
 	add $a1,$0,$t0
-	la $a0,time
-	#jal Convert
+	la $a0,time1
+	la $a2, stringKetQua
+	jal Convert
 	#Luu tru $a0, $v0
 	addi $sp,$sp,-8
 	sw $a0,0($sp)
@@ -255,32 +275,29 @@ Choose2:
 	lw $v0,4($sp)
 	lw $a0,0($sp)
 	addi $sp,$sp,8
+	addi $sp, $sp, 4
 	j EndChooseRequestNumber
 Choose1:
-	#jal 
-	bne $t1,$t0,ChooseRequestNumber
-	addi $sp,$sp,-8
-	sw $a0,0($sp)
-	sw $v0,4($sp)
+	sw $a0, ($sp)
 	la $a0,newline
-	li $v0,4 #In xau ra man hinh
+	addi $v0,$0,4 #In xau ra man hinh
 	syscall
 	la $a0,stringLuaChon
-	li $v0,4 #In xau ra man hinh
+	addi $v0,$0,4 #In xau ra man hinh
 	syscall
 	la $a0, charRequestNumber
-	li $v0,4    # in ki tu ra nam hinh
+	addi $v0,$0,4    # in ki tu ra nam hinh
 	syscall
 	la $a0,newline
-	li $v0,4 #In xau ra man hinh
+	addi $v0,$0,4 #In xau ra man hinh
 	syscall
 	la $a0,stringKetQua
-	li $v0,4 #In xau ra man hinh
+	addi $v0,$0,4 #In xau ra man hinh
 	syscall
-	#Tra lai $v0, $a0
-	lw $v0,4($sp)
-	lw $a0,0($sp)
-	addi $sp,$sp,8
+	
+	la $a0, time1
+	addi $v0,$0,4 #In xau ra man hinh
+	syscall
 EndChooseRequestNumber:
 	j EndOfFile
 #-----------------------------------------------------------
@@ -1288,6 +1305,7 @@ LoopFindNextYear:
 	j LoopFindNextYear
 EndLoopFindNextYear:
 	add $v0, $a0,$0
+	addi $v1, $v0, 4 
 EndLeapYearNext:
 lw $ra, 4($sp)
 lw $t0, ($sp)
